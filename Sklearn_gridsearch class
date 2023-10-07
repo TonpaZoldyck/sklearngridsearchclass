@@ -1,0 +1,65 @@
+from sklearn.model_selection import GridSearchCV
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC
+from sklearn.metrics import accuracy_score, classification_report
+
+class ModelSelector:
+    def __init__(self, X_train, y_train, X_test, y_test):
+        self.X_train = X_train
+        self.y_train = y_train
+        self.X_test = X_test
+        self.y_test = y_test
+        self.candidates = []
+        self.results = []
+
+    def add_candidate(self, model, param_grid):
+        # Add a candidate model along with its hyperparameter grid
+        self.candidates.append((model, param_grid))
+
+    def grid_search(self):
+        best_model = None
+        best_score = 0
+
+        for model, param_grid in self.candidates:
+            grid_search = GridSearchCV(model, param_grid, cv=5)
+            grid_search.fit(self.X_train, self.y_train)
+            y_preds = grid_search.predict(self.X_test)
+
+            # Calculate accuracy and other metrics
+            accuracy = accuracy_score(self.y_test, y_preds)
+            report = classification_report(self.y_test, y_preds, output_dict=True)
+
+            if accuracy > best_score:
+                best_score = accuracy
+                best_model = grid_search.best_estimator_
+
+            # Store the results for this model
+            self.results.append({
+                'model_name': model.__class__.__name__,
+                'params': grid_search.best_params_,
+                'accuracy': accuracy,
+                'y_preds': y_preds,
+                'classification_report': report
+            })
+
+        return best_model, best_score
+
+# Example usage:
+# Initialize the ModelSelector
+selector = ModelSelector(X_train, y_train, X_test, y_test)
+
+# Add candidate models and their hyperparameter grids
+# selector.add_candidate(SVC(), {'C': [1, 10, 100], 'kernel': ['linear', 'rbf']})
+selector.add_candidate(RandomForestClassifier(), {'n_estimators': [100, 150, 200], 'max_depth': [None, 5]})
+
+# Perform grid search to find the best model
+best_model, best_accuracy = selector.grid_search()
+
+# Access and view the results for all models
+# for result in selector.results:
+#     print(f"Model: {result['model_name']}")
+#     print(f"Best Parameters: {result['params']}")
+#     print(f"Accuracy: {result['accuracy']}")
+#     print("Classification Report:")
+#     print(result['classification_report'])
+#     print("\n")
